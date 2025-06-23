@@ -12,7 +12,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 $id = $_GET['id'];
-$stmt = $conn->prepare("SELECT username, role, can_create, can_read, can_edit, can_delete FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT username, password, role, can_create, can_read, can_edit, can_delete FROM users WHERE id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -25,15 +25,23 @@ if (!$role) {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $newName = trim($_POST['role']);
+    $newPass = trim($_POST['password']);
     $canCreate = isset($_POST['Create']) ? 1 : 0;
     $canRead = isset($_POST['Read']) ? 1 : 0;
     $canEdit = isset($_POST['Edit']) ? 1 : 0;
     $canDelete = isset($_POST['Delete']) ? 1 : 0;
 
-    $stmt = $conn->prepare("UPDATE users SET role = ?, can_create = ?, can_read = ?, can_edit = ?, can_delete = ? WHERE id = ?");
-    $stmt->bind_param("siiiii", $newName, $canCreate, $canRead, $canEdit, $canDelete, $id);
+     $hashedPassword = password_hash($newPass, PASSWORD_DEFAULT);
+
+      if (!empty($username) && !empty($newPass) && !empty($role)) {
+         $stmt = $conn->prepare("UPDATE users SET password = ?, role = ?, can_create = ?, can_read = ?, can_edit = ?, can_delete = ? WHERE id = ?");
+    $stmt->bind_param("ssiiiii", $hashedPassword, $newName, $canCreate, $canRead, $canEdit, $canDelete, $id);
     $stmt->execute();
     header("Location: index.php");
+    exit;
+    }
+
+   
 }
 ?>
 
@@ -78,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-weight: 500;
         }
 
-        input[type="text"] {
-            width: 100%;
+        input[type="text"], [type="password"] {
+            width: 95%;
             padding: 10px;
             margin-top: 5px;
             margin-bottom: 15px;
@@ -126,12 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             text-decoration: underline;
         }
 
+
     </style>
 </head>
 <body>
 
 <div class="form-container">
-    <h2><i class="fas fa-pen-to-square"></i> Edit Role</h2>
+    <h2><i class="fas fa-pen-to-square"></i> Edit User</h2>
 
     <form method="POST">
         <label for="role"><i class="fas fa-id-badge"></i> Role Name</label>
@@ -139,6 +148,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <option value="staff">staff</option>
         <option value="admin">Admin</option>
     </select>
+
+     <form method="POST">
+        <label for="password">Password:</label>
+        <input type="password" name="password" id="password" required>
+    </select>
+
+    
 
         <div class="permissions">
             <label><input type="checkbox" name="Create" value="1" <?= $role['can_create'] ? 'checked' : '' ?>> <i class="fas fa-plus-circle"></i> Create</label>

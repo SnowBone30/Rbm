@@ -197,6 +197,7 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
             <th>User</th>
             <th>Role</th>
             <th>Actions</th>
+             <th>Deactivate Account</th>
         </tr>
         <?php
         $result = $conn->query("SELECT id, username, role FROM users ORDER BY id DESC");
@@ -213,6 +214,14 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
                         <a href="delete.php?id=<?= $row['id'] ?>" title="Delete" onclick="return confirm('Delete this role?')">
                             <i class="fas fa-trash"></i>
                         </a>
+                        <td>
+                            <form method="POST" action="deactivate_account.php"
+                onsubmit="return confirm('Are you sure you want to deactivate your account? This will take effect after 3 days.');">
+                <button type="submit"
+                    style="background-color: red; color: white; padding: 10px 20px; border-radius: 6px; border: none;">
+                    Deactivate My Account
+                </button>
+                        </td>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -220,7 +229,6 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
     </table>
     <br>
 
-    <a href="user_logs.php">Deactivate Account</a>
     <div class="footer-button">
         <div class="create-button">
             <a href="logout.php"> Logout</a>
