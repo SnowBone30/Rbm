@@ -12,63 +12,8 @@ include 'db.php';
 <head>
     <title>User Login Logs</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            padding: 30px;
-            background-color: #f7f9fc;
-        }
+    <link rel="stylesheet" href="ul.css">
 
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #0d6efd;
-        }
-
-        table {
-            width: 95%;
-            margin: auto;
-            border-collapse: collapse;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: center;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #0d6efd;
-            color: white;
-        }
-
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        .status-success {
-            color: green;
-            font-weight: bold;
-        }
-
-        .status-failed {
-            color: red;
-            font-weight: bold;
-        }
-
-        .account-active {
-            color: green;
-            font-weight: bold;
-        }
-
-        .account-inactive {
-            color: red;
-            font-weight: bold;
-        }
-    </style>
 </head>
 <body>
 

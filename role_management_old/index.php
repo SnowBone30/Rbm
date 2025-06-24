@@ -40,116 +40,8 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
 <head>
     <title>Role Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+     <link rel="stylesheet" href="index.css">
 
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #f7f9fc;
-            padding: 30px;
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .top-bar p {
-            font-size: 16px;
-            margin: 0;
-        }
-
-        .top-bar a {
-            text-decoration: none;
-            color: #e63946;
-            font-weight: bold;
-        }
-
-        .create-button {
-            margin-bottom: 20px;
-        }
-
-        .create-button a {
-            background-color: #0d6efd;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-
-        .create-button a:hover {
-            background-color: #0a58ca;
-        }
-
-        table {
-            width: 80%;
-            margin: auto;
-            border-collapse: collapse;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        th,
-        td {
-            padding: 12px 15px;
-            text-align: center;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #0d6efd;
-            color: white;
-        }
-
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        .action-icons a {
-            margin: 0 5px;
-            text-decoration: none;
-            color: #0d6efd;
-        }
-
-        .action-icons a:hover {
-            color: #0a58ca;
-        }
-
-        .header-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 80%;
-            margin: auto;
-            margin-bottom: 20px;
-        }
-
-        .footer-button {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 80%;
-            margin: auto;
-            margin-bottom: 20px;
-        }
-
-        .header-controls .create-button {
-            margin: 0;
-        }
-
-        .header-controls .create-button a {
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-    </style>
 </head>
 
 <body>
@@ -171,13 +63,33 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
         </div>
 
         <?php if ($_SESSION['user']['role'] === 'staff'): ?>
-            <form method="POST" action="deactivate_account.php"
-                onsubmit="return confirm('Are you sure you want to deactivate your account? This will take effect after 3 days.');">
-                <button type="submit"
-                    style="background-color: red; color: white; padding: 10px 20px; border-radius: 6px; border: none;">
-                    Deactivate My Account
-                </button>
-            </form>
+           <table>
+        <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Role</th>
+            <th>Actions</th>
+        </tr>
+        <?php
+        $result = $conn->query("SELECT id, username, role FROM users ORDER BY id DESC");
+        while ($row = $result->fetch_assoc()):
+            ?>
+            <tr>
+                <td><?= $row['id'] ?></td>
+                <td><?= htmlspecialchars($row['username']) ?></td>
+                <td><?= htmlspecialchars($row['role']) ?></td>
+                <td class="action-icons">
+                    <a href="view.php?id=<?= $row['id'] ?>" title="View"><i class="fas fa-eye"></i></a>
+                    <?php if ($_SESSION['user']['role'] === 'admin'): ?>
+                        <a href="edit.php?id=<?= $row['id'] ?>" title="Edit"><i class="fas fa-pen"></i></a>
+                        <a href="delete.php?id=<?= $row['id'] ?>" title="Delete" onclick="return confirm('Delete this role?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endwhile; ?>
+    </table>
         <?php endif; ?>
 
 
@@ -185,13 +97,7 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
             <div class="create-button">
                 <a href="create_user.php"><i class="fas fa-plus-circle"></i> Create New User</a>
                 <a href="user_logs.php"> View user logs</a>
-            </div>
-        <?php endif; ?>
-    </div>
-
-
-
-    <table>
+                <table>
         <tr>
             <th>ID</th>
             <th>User</th>
@@ -228,6 +134,10 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
         <?php endwhile; ?>
     </table>
     <br>
+            </div>
+        <?php endif; ?>
+    </div>
+
 
     <div class="footer-button">
         <div class="create-button">
