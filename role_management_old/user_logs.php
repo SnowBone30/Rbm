@@ -39,6 +39,13 @@ include 'db.php';
     ";
     $result = $conn->query($query);
     while ($row = $result->fetch_assoc()):
+   
+$netIp = $row['ip_address'];                   // fallback
+if (filter_var($row['ip_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    $netIp = $row['ip_address'] . '/24';
+} elseif (filter_var($row['ip_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+    $netIp = $row['ip_address'] . '/64';      
+}
     ?>
     <tr>
         <td><?= $row['id'] ?></td>
@@ -47,7 +54,7 @@ include 'db.php';
         <td class="status-<?= $row['status'] === 'success' ? 'success' : 'failed' ?>">
             <?= ucfirst($row['status']) ?>
         </td>
-        <td><?= $row['ip_address'] ?></td>
+       <td><?= $netIp ?></td>
         <td><?= $row['created_at'] ?></td>
         <td class="account-<?= $row['account_status'] === 'inactive' ? 'inactive' : 'active' ?>">
             <?= ucfirst($row['account_status'] ?? 'Unknown') ?>

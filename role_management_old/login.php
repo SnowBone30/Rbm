@@ -2,6 +2,58 @@
 session_start();
 include 'db.php';
 
+function getClientIp(): string
+{
+    $headers = [
+        'HTTP_CLIENT_IP',
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_FORWARDED',
+        'HTTP_X_REAL_IP',
+        'HTTP_X_CLUSTER_CLIENT_IP',
+        'HTTP_FORWARDED_FOR',
+        'HTTP_FORWARDED',
+        'REMOTE_ADDR'
+    ];
+
+    foreach ($headers as $key) {
+        if (!empty($_SERVER[$key])) {
+            foreach (explode(',', $_SERVER[$key]) as $ip) {
+                $ip = trim($ip);
+
+                /* special-case the IPv6 loop-back first */
+                if ($ip === '::1') {
+                    return '127.0.0.1';
+                }
+
+                /* validate – allow private/LAN, skip only invalid format        */
+                if (
+                    filter_var(
+                        $ip,
+                        FILTER_VALIDATE_IP,
+                        FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6
+                    )
+                ) {
+                    return $ip;
+                }
+            }
+        }
+    }
+    return '0.0.0.0';   // nothing usable found
+}
+
+
+function logLoginAttempt($conn, $username, $role, $status)
+{
+    $ip = getClientIp();                // ← use helper
+    $stmt = $conn->prepare(
+        "INSERT INTO login_logs (username, role, status, ip_address)
+         VALUES (?, ?, ?, ?)"
+    );
+    $stmt->bind_param("ssss", $username, $role, $status, $ip);
+    $stmt->execute();
+}
+
+
 function deactivateInactiveUsers($conn)
 {
     $stmt = $conn->prepare("UPDATE users SET account_status = 'inactive' WHERE last_login < NOW() - INTERVAL 3 DAY AND account_status = 'active'");
@@ -11,13 +63,7 @@ function deactivateInactiveUsers($conn)
 deactivateInactiveUsers($conn);
 
 // Function to log login attempts
-function logLoginAttempt($conn, $username, $role, $status)
-{
-    $ip = $_SERVER['REMOTE_ADDR'];
-    $stmt = $conn->prepare("INSERT INTO login_logs (username, role, status, ip_address) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("ssss", $username, $role, $status, $ip);
-    $stmt->execute();
-}
+
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
@@ -29,12 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
 
-    if ($user) {
 
-        if ($user['account_status'] === 'inactive') {
-            $error = "Your account has been deactivated due to inactivity.";
+    if ($user) {
+        /* right after $user = $result->fetch_assoc(); */
+        if ($user && $user['account_status'] === 'inactive') {
+            $_SESSION['error'] = 'Your account has been deactivated. Contact the administrator.';
             logLoginAttempt($conn, $username, $user['role'], 'failed');
-            return;
+            header('Location: login.php');
+            exit;
         } else {
             // Check lockout
             $now = new DateTime();
@@ -44,25 +92,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($user['failed_attempts'] >= 5 && $interval->days < 1) {
                 $error = "Too many failed attempts. Try again after 24 hours.";
                 logLoginAttempt($conn, $username, $user['role'], 'failed');
-                return;
+
             } else {
                 // Check password
                 if (password_verify($password, $user['password'])) {
                     // Reset failed attempts
-                    $reset = $conn->prepare("UPDATE users SET failed_attempts = 0, last_failed_login = NULL WHERE id = ?");
+                    /* 1. reset failed attempts */
+                    $reset = $conn->prepare(
+                        "UPDATE users
+     SET failed_attempts = 0,
+         last_failed_login = NULL
+     WHERE id = ?"
+                    );
                     $reset->bind_param("i", $user['id']);
                     $reset->execute();
 
-                    $_SESSION['user'] = $user;
+                    /* 2. generate & stash OTP */
+                    $otp = rand(100000, 999999);
+                    $_SESSION['otp'] = $otp;
+                    $_SESSION['otp_user'] = $user;
+
+                    /* 3. (demo only) store a message you can display on verify_otp.php */
+                    $_SESSION['otp_message'] = "Your OTP is: $otp";
+
                     logLoginAttempt($conn, $user['username'], $user['role'], 'success');
 
-                    // Update last_login
-                    $updateLogin = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
-                    $updateLogin->bind_param("i", $user['id']);
-                    $updateLogin->execute();
-
-                    header("Location: index.php");
+                    /* 5. redirect to OTP page */
+                    header("Location: verify_otp.php");
                     exit;
+
                 } else {
                     // Increment failed attempts
                     $update = $conn->prepare("UPDATE users SET failed_attempts = failed_attempts + 1, last_failed_login = NOW() WHERE id = ?");
@@ -150,6 +208,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <form method="POST">
         <h2>Login</h2>
+
+        <?php
+        if (isset($_SESSION['error'])) {
+            echo "<div class='error'>" . htmlspecialchars($_SESSION['error']) . "</div>";
+            unset($_SESSION['error']);
+        }
+        ?>
+
+
         <?php if (isset($error))
             echo "<div class='error'>$error</div>"; ?>
 

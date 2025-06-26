@@ -106,32 +106,61 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'staff') {
              <th>Deactivate Account</th>
         </tr>
         <?php
-        $result = $conn->query("SELECT id, username, role FROM users ORDER BY id DESC");
-        while ($row = $result->fetch_assoc()):
-            ?>
-            <tr>
-                <td><?= $row['id'] ?></td>
-                <td><?= htmlspecialchars($row['username']) ?></td>
-                <td><?= htmlspecialchars($row['role']) ?></td>
-                <td class="action-icons">
-                    <a href="view.php?id=<?= $row['id'] ?>" title="View"><i class="fas fa-eye"></i></a>
-                    <?php if ($_SESSION['user']['role'] === 'admin'): ?>
-                        <a href="edit.php?id=<?= $row['id'] ?>" title="Edit"><i class="fas fa-pen"></i></a>
-                        <a href="delete.php?id=<?= $row['id'] ?>" title="Delete" onclick="return confirm('Delete this role?')">
-                            <i class="fas fa-trash"></i>
-                        </a>
-                        <td>
-                            <form method="POST" action="deactivate_account.php"
-                onsubmit="return confirm('Are you sure you want to deactivate your account? This will take effect after 3 days.');">
-                <button type="submit"
-                    style="background-color: red; color: white; padding: 10px 20px; border-radius: 6px; border: none;">
-                    Deactivate My Account
-                </button>
-                        </td>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        <?php endwhile; ?>
+$result = $conn->query(
+    "SELECT id, username, role, account_status
+     FROM   users
+     ORDER  BY id DESC"
+);
+while ($row = $result->fetch_assoc()):
+?>
+<tr>
+    <td><?= $row['id'] ?></td>
+    <td><?= htmlspecialchars($row['username']) ?></td>
+    <td><?= htmlspecialchars($row['role']) ?></td>
+    <td class="action-icons">
+        <a href="view.php?id=<?= $row['id'] ?>" title="View"><i class="fas fa-eye"></i></a>
+        <a href="edit.php?id=<?= $row['id'] ?>" title="Edit"><i class="fas fa-pen"></i></a>
+        <a href="delete.php?id=<?= $row['id'] ?>"
+           title="Delete"
+           onclick="return confirm('Delete this role?');">
+            <i class="fas fa-trash"></i>
+        </a>
+    </td>
+
+    <td>
+        <!-- Deactivate button (always visible to admin) -->
+        <form action="deactivate_account.php"
+              method="POST"
+              style="display:inline-block"
+              onsubmit="return confirm('Are you sure you want to deactivate this account? This will take effect after 3 days.');">
+            <input type="hidden" name="user_id" value="<?= $row['id'] ?>">
+            <button type="submit"
+                    style="background-color: red; color: white; padding: 10px 20px; border-radius: 6px; border: none;">Deactivate</button>
+        </form>
+
+        <!-- Reactivate button – only when already inactive -->
+        <!-- Only show this form when the user is inactive -->
+<?php if ($row['account_status'] === 'inactive'): ?>
+    <form action="reactivate_account.php"     
+          method="POST"
+          style="display:inline-block"
+          onsubmit="return confirm('Reactivate this account?');">
+
+        <!-- 👇 Hidden field that carries the username to PHP -->
+        <input type="hidden"
+               name="username"                 
+               value="<?= htmlspecialchars($row['username']) ?>">
+
+        <!-- The button the admin clicks -->
+        <button type="submit" title="Reactivate">
+            <i class="fas fa-undo"></i>
+        </button>
+    </form>
+<?php endif; ?>
+
+    </td>
+</tr>
+<?php endwhile; ?>
     </table>
     <br>
             </div>
